@@ -3,7 +3,7 @@
 ## degree
 
 (unvollständig: Promotion fehlt?)
-https://lsf.uni-stuttgart.de/qisserver/rds?state=modulBeschrGast&nextdir=qispos/modulBeschr/gast
+// https://lsf.uni-stuttgart.de/qisserver/rds?state=modulBeschrGast&nextdir=qispos/modulBeschr/gast
 (lieber von einzelstudiengängen, siehe unten)
 
  - lsf_id (81)
@@ -43,13 +43,29 @@ https://lsf.uni-stuttgart.de/qisserver/rds?state=verpublish&publishContainer=stg
 
 ## module
 
+### all modules
+
 https://lsf.uni-stuttgart.de/qisserver/rds?state=change&type=3&next=TableSelect.vm&subdir=pord&P_start=0&P_anzahl=9999
 
  - lsf_id (40707, int)
- - lsf_modid (080100003, string)
- - lsf_modnum (14620, string)
+
+### single module
+
+https://lsf.uni-stuttgart.de/qisserver/rds?state=verpublish&status=init&moduleCall=mhbHTMLDetail&publishConfFile=mhbdetail&publishSubDir=mhb&publishid=103349
+
  - name (Algebra, string)
- - credits (9.0, int*10)
+ - active (true, bool)
+ - modId (080100003, string)
+ - modNum (14620, string)
+ - credits (9, int)
+ - creditHours (6, int)
+ - duration (1, int, Semester)
+ - rotationCycle ( [2, 1], [int, int], [Intervall (0 unregelmäßig), Start (1: Winter, 2: Sommer)] )
+ - lectures ([ref, ref, ...], Array of refs)
+ - lsf_lectureIds ([ref, ref, ...], Array of refs)
+ - lsf_courseIds
+
+
 
 ## lecture
 
@@ -59,7 +75,7 @@ https://lsf.uni-stuttgart.de/qisserver/rds?state=wsearchv&search=1&subdir=verans
 /// https://lsf.uni-stuttgart.de/qisserver/rds?state=wsearchv&search=1&subdir=veranstaltung&k_abstgv.abstgvnr=1279&P_start=0&P_anzahl=9999
 
  - lsf_id (149122, int)
- - lsf_lecnum (01370, string)
+ - lecnum (01370, string)
  - name (Algebra, string)
  - type (lecture, string) [lecture, tutorial, seminar, practicum]
 
