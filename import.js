@@ -1,8 +1,66 @@
-var argv = require('optimist').argv,
+var argv = require('yargs')
+        .boolean('v')
+        .argv,
+    log = require('npmlog'),
+    async = require('async'),
+    ProgressBar = require('progress'),
     Q = require('q');
 var harvester = require('./harvester');
 
 Q.longStackSupport = true;
+
+// args parsing
+if (argv.v) log.level = 'verbose';
+var numJobs = argv.j || 5;
+harvester.semester = argv.s || '20141';
+
+
+/** Parallel job scheduling for promise-returning functions */
+Q.runJobs = function (fns, numJobs) {
+    numJobs = numJobs ? numJobs : 5;
+    var deferred = Q.defer();
+    var ret = [];
+
+    var q = async.queue(function (fn, cb) {
+        return fn().then(function (res) {
+            ret.push(res); // save result, because async forgets everything
+            return res;
+        }).nodeify(cb);
+    }, numJobs)
+    q.drain = deferred.makeNodeResolver();
+    q.push(fns);
+
+    return deferred.promise.thenResolve(ret);
+}
+
+Q.nbind = function (fn, thisp) {
+    var fnArgs = Array.prototype.slice.call(arguments).slice(2);
+    return function () {
+        var deferred = Q.defer();
+        fnArgs.push(deferred.makeNodeResolver());
+        try {
+            fn.apply(thisp, fnArgs)
+        } catch (e) {
+            deferred.reject(e);
+        }
+        return deferred.promise;
+    }
+}
+
+/** Run jobs with progress bar */
+var runJobs = function (fns, bar) {
+    fns = fns.map(function (fn) {
+        return function () {
+            return fn().then(function (res) {
+                bar.tick(1);
+                return res;
+            })
+        }
+    });
+    return Q.runJobs(fns, numJobs)
+}
+
+
 
 var MongoClient = require('mongodb').MongoClient;
 MongoClient.connect("mongodb://localhost:27017/mylsf", function (err, db) {
@@ -69,6 +127,11 @@ MongoClient.connect("mongodb://localhost:27017/mylsf", function (err, db) {
     function upsertEvent (event) {
         return Q.ninvoke(db.collection('events'), 'update', event, event, {upsert: true});
     }
+    function upsertLocation (location) {
+        return Q.ninvoke(db.collection('locations'), 'update', {lsf_id: location.lsf_id}, {
+            $set: location
+        }, {upsert: true});
+    }
 
 
 
@@ -83,22 +146,21 @@ MongoClient.connect("mongodb://localhost:27017/mylsf", function (err, db) {
                 return Q.all([
                     upsertCourse(courseData),
                     upsertDegree({
-                        lsf_num: courseData.degree,
+                        lsf_num: courseData.degreeNum,
                         name: courseData.degreeName
                     }),
                     upsertMajor({
-                        lsf_num: courseData.major,
+                        lsf_num: courseData.majorNum,
                         name: courseData.majorName
                     })
                 ]).thenResolve(courseData);
             }
         ].reduce(Q.when, Q())
         .then(function (course) {
-            console.log(course);
         }, function (err) {
             if (err.type) {
                 return Q.ninvoke(courses_col, 'remove', course).then(function () {
-                    console.log('removed', course, 'due to error', err);
+                    log.warn('import', 'removed', course, 'due to error', err);
                 });
             } else {
                 throw err;
@@ -123,7 +185,6 @@ MongoClient.connect("mongodb://localhost:27017/mylsf", function (err, db) {
             )).thenResolve(moduleData);
         })
         .then(function (moduleData) {
-            console.log(moduleData);
         });
     }
 
@@ -150,7 +211,7 @@ MongoClient.connect("mongodb://localhost:27017/mylsf", function (err, db) {
                         lsf_lectures: [lecture.lsf_id]
                     });
                 }),
-                upsertModule(lectureData),
+                upsertLecture(lectureData),
                 events.map(upsertEvent) // insert events for this lecture
             )).thenResolve({
                 lecture: lectureData,
@@ -159,22 +220,28 @@ MongoClient.connect("mongodb://localhost:27017/mylsf", function (err, db) {
 
         })
         .then(function (res) {
-            console.log(res.lecture);
-            console.log('Added ' + res.events.length + ' Events for this lecture');
+            //log.info('import', 'Added %d events for this lecture', res.events.length);
             return res.lecture;
         });
+    }
+
+    function updateLocation(location) {
+        return harvester.locationFetchById(location.lsf_id)
+        .then(function (locationData) {
+            return upsertLocation(locationData);
+        })
     }
 
     switch (argv._[0]) {
         case 'courseList':
             var col = db.collection('courses');
 
-            Q.ninvoke(col, 'drop').then(Q, Q)
-            .then(harvester.courseFetchIds)
+            log.info('import', 'Fetching course ids …');
+            harvester.courseFetchIds()
             .then(function (courses) {
                 return Q.all(courses.map(upsertCourse)).thenResolve(courses);
             }).done(function (courses) {
-                console.log(courses.length + ' course ids imported.');
+                log.info('import', '%d course ids imported', courses.length);
                 process.exit();
             });
             break;
@@ -182,12 +249,17 @@ MongoClient.connect("mongodb://localhost:27017/mylsf", function (err, db) {
         case 'courseData':
             var col = db.collection('courses');
 
-            Q.ninvoke(col.find().sort({lsf_id: 1}), 'toArray').then(function (res) {
-                return res.map(function (course) {
-                    return updateCourse.bind(null, course)
-                }).reduce(Q.when, Q());
+            log.info('import', 'Fetching course data …');
+            Q.ninvoke(col.find({lsf_id: 1278}).sort({lsf_id: 1}), 'toArray').then(function (res) {
+                var jobs = res.map(function (course) {
+                    return updateCourse.bind(null, course);
+                });
+                var bar = new ProgressBar('ETA :etas [:bar] :percent', {
+                    total: jobs.length,
+                })
+                return runJobs(jobs, bar);
             }).done(function () {
-                console.log('course data updated!');
+                log.info('import', 'course data updated!');
                 process.exit();
             });
             break;
@@ -195,13 +267,13 @@ MongoClient.connect("mongodb://localhost:27017/mylsf", function (err, db) {
         case 'moduleList':
             var col = db.collection('modules');
 
-            Q.ninvoke(col, 'drop').then(Q, Q)
-            .then(harvester.moduleFetchIds)
+            log.info('import', 'Fetching module ids …');
+            harvester.moduleFetchIds()
             .then(function (modules) {
                 return Q.all(modules.map(upsertModule)).thenResolve(modules);
             })
             .done(function (modules) {
-                console.log(modules.length + ' module ids imported.');
+                log.info('import', '%d module ids imported', modules.length);
                 process.exit();
             });
             break;
@@ -209,12 +281,17 @@ MongoClient.connect("mongodb://localhost:27017/mylsf", function (err, db) {
         case 'moduleData':
             var col = db.collection('modules');
 
-            Q.ninvoke(col.find().sort({lsf_id: 1}), 'toArray').then(function (modules) {
-                return modules.map(function (module) {
+            log.info('import', 'Fetching module data …');
+            Q.ninvoke(col.find().sort({'lsf_id': 1}), 'toArray').then(function (modules) {
+                var jobs = modules.map(function (module) {
                     return updateModule.bind(null, module);
-                }).reduce(Q.when, Q());
+                });
+                var bar = new ProgressBar('ETA :etas [:bar] :percent', {
+                    total: jobs.length,
+                });
+                return runJobs(jobs, bar);
             }).done(function () {
-                console.log('module data updated!');
+                log.info('import', 'module data updated!');
                 process.exit();
             });
             break;
@@ -222,21 +299,28 @@ MongoClient.connect("mongodb://localhost:27017/mylsf", function (err, db) {
         case 'lectureList':
             var col = db.collection('lectures');
 
-            Q.ninvoke(col, 'drop').then(Q, Q)
-            .then(function () {
-                return Q.ninvoke(db.collection('courses').find(), 'toArray').then(function (courses) {
-                    return courses.map(function (course) {
-                        return function () {
-                            return harvester.lectureFetchIdsByCourseId(course.lsf_id).then(function (lectures) {
-                                console.log(lectures);
-                                return Q.all(lectures.map(upsertLecture));
-                            });
-                        }
-                        //return lecturesForCourse.bind(null, course.lsf_id);
-                    }).reduce(Q.when, Q());
+            log.info('import', 'Fetching lecture ids …');
+            harvester.lectureFetchCount()
+            .then(function (count) {
+                var p_size = 100; // lsf allows max 100
+                var jobs = Array.apply(null, Array(parseInt(count / p_size) + 1)).map(function (v, i) {
+                    return function () {
+                        return harvester.lectureFetchIdsByRange(i * p_size, p_size)
+                        .then(function (lectures) {
+                            return Q.all(lectures.map(upsertLecture)).thenResolve(lectures);
+                        });
+                    }
                 });
-            }).done(function () {
-                console.log('Finished import!');
+                var bar = new ProgressBar('ETA :etas [:bar] :percent', {
+                    total: jobs.length,
+                });
+                return runJobs(jobs, bar)
+                .then(function (lecture_chunks) {
+                    return [].concat.apply([], lecture_chunks);
+                });
+            })
+            .done(function (res) {
+                log.info('import', '%d lecture ids imported!', res.length);
                 process.exit();
             });
 
@@ -245,22 +329,74 @@ MongoClient.connect("mongodb://localhost:27017/mylsf", function (err, db) {
         case 'lectureData':
             var col = db.collection('lectures');
 
+            log.info('import', 'Fetching lecture data …');
             Q.ninvoke(col.find().sort({lsf_id: 1}), 'toArray').then(function (lectures) {
-                return lectures.map(function (lecture) {
+                var jobs = lectures.map(function (lecture) {
                     return updateLecture.bind(null, lecture);
-                }).reduce(Q.when, Q());
+                });
+                var bar = new ProgressBar('ETA :etas [:bar] :percent', {
+                    total: jobs.length,
+                });
+                return runJobs(jobs, bar);
             }).done(function () {
-                console.log('lecture data updated');
+                log.info('import', 'lecture data updated');
+                process.exit();
+            });
+            break;
+
+        case 'locationData':
+            var col = db.collection('lectures');
+
+            log.info('import', 'Fetching location data …');
+
+            Q.ninvoke(db.collection('events'), 'distinct', 'lsf_location').then( function (res) {
+                var jobs = res.filter(function (v) { return v; }).map(function (lsf_id) {
+                    return updateLocation.bind(null, {lsf_id: lsf_id});
+                });
+                var bar = new ProgressBar('ETA :etas [:bar] :percent', {
+                    total: jobs.length,
+                });
+                return runJobs(jobs, bar);
+            }).done(function (res) {
+                log.info('import', '%d room ids imported!', res.length);
+                process.exit();
+            });
+
+            break;
+
+        case 'courseDrop':
+            Q.ninvoke(db.collection('courses'), 'drop')
+            .then(Q.nbind(db.collection('majors').drop, db.collection('majors')))
+            .then(Q.nbind(db.collection('degrees').drop, db.collection('degrees')))
+            .then(Q, Q)
+            .done(function () {
+                log.info('import', 'courses/majors/degrees dropped');
+                process.exit();
+            });
+            break;
+        case 'moduleDrop':
+            Q.ninvoke(db.collection('modules').drop()).then(Q, Q).done(function () {
+                log.info('import', 'modules dropped');
+                process.exit();
+            });
+            break;
+        case 'lectureDrop':
+            Q.ninvoke(db.collection('lectures').drop()).then(Q, Q).done(function () {
+                log.info('import', 'lectures dropped');
                 process.exit();
             });
             break;
 
         case 'test':
-            harvester.lectureFetchById(149122).then(updateLecture).done(function (res) {
+            harvester.locationFetchById(2308).done(function (res) {
                 console.log(res);
                 process.exit();
             });
             break;
+
+        default:
+            log.info('import', 'Nothing to be done');
+            process.exit();
 
     }
 

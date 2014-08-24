@@ -1,53 +1,64 @@
 var request = require('request'),
     cheerio = require('cheerio'),
     Q = require('q'),
+    log = require('npmlog'),
     moment = require('moment');
 
-var semester = '20141';
+
+var harvest = exports;
+
+harvest.logLevel = log.level;
+harvest.semester = '20141';
 
 /* Harvest shorthand func */
-exports.harvest = function (url) {
+harvest.harvest = function (url, fn) {
+    log.verbose('harvest', 'Requesting "%s" …', url);
     return Q.nfcall(request, url)
-    .then(function (res) {
+    .then(function(res) {
         var $ = cheerio.load(res[1], {
             normalizeWhitespace: true
         });
-        return $;
+        log.verbose('harvest', 'Processing data from "%s" …', url);
+        return fn($)
+        .then(function (res) {
+            log.verbose('harvest', 'Harvest sucessful: ', res);
+            return res;
+        }, function (err) {
+            log.error('harvest', 'Harvest failed for "%s"', url);
+            log.error('harvest', $.html());
+            throw err;
+        });
     });
 }
+
 
 
 /*
 * Course harvesting
 */
 
-exports.courseFetchIds = function () {
+harvest.courseFetchIds = function () {
     var url = 'https://lsf.uni-stuttgart.de/qisserver/rds?state=verpublish&publishContainer=stgPlanList';
-    return exports.harvest(url).then(function ($) {
-        var courses = [];
-        $('.divcontent table tbody td:first-child a').each(function() {
-            courses.push({
-                lsf_id: parseInt($(this).attr('href').match(/publishid=(\d+)/)[1])
-            });
-        });
-        return courses;
-    }).catch(function (err) {
-        console.error('failed to parse url ' + url);
-        throw err;
+    return harvest.harvest(url, function ($) {
+        return Q($('.divcontent table tbody td:first-child a').get().map(function(a) {
+            return {
+                lsf_id: parseInt($(a).attr('href').match(/publishid=(\d+)/)[1])
+            };
+        }));
     });
-};
+}
 
-exports.courseFetchById = function (lsf_id) {
+harvest.courseFetchById = function (lsf_id) {
     var url = 'https://lsf.uni-stuttgart.de/qisserver/rds?state=verpublish&publishContainer=stgContainer&publishid=' + lsf_id;
 
-    return exports.harvest(url).then(function ($) {
+    return harvest.harvest(url, function ($) {
         var tds = $('.divcontent table td:nth-of-type(2n)').get()
                     .map(function (td) { return $(td).text().trim() });
 
         var degreeNum = tds[8].match(/^(\d+)/) ? tds[8].match(/^(\d+)/)[1] : null;
         var degreeName = tds[8].match(/^\d*\s*(.*)$/)[1];
         var majorNum = tds[1].match(/^(\d+)/) ? tds[1].match(/^(\d+)/)[1] : null;
-        var majorName = tds[6];
+        var majorName = tds[1].match(/^\d*\s*(.*)$/)[1];
         var erVer = tds[7].match(/^(\d+)/) ? tds[7].match(/^(\d+)/)[1] : null;
 
         if (!degreeNum || !majorNum)
@@ -63,10 +74,7 @@ exports.courseFetchById = function (lsf_id) {
             erVer: erVer,
         }
 
-        return course;
-    }).catch(function (err) {
-        console.error('failed to parse url ' + url);
-        throw err;
+        return Q(course);
     });
 }
 
@@ -74,27 +82,22 @@ exports.courseFetchById = function (lsf_id) {
 * Module harvesting
 */
 
-exports.moduleFetchIds = function () {
+harvest.moduleFetchIds = function () {
     var url = 'https://lsf.uni-stuttgart.de/qisserver/rds?state=change&type=3&moduleParameter=pordpos&nextdir=change&next=TableSelect.vm&subdir=pord&P_start=0&P_anzahl=9999';
 
-    return exports.harvest(url).then(function ($) {
-        var courses = [];
-        $('.divcontent table tbody tr:nth-child(n+2) td:nth-child(3) a').each(function() {
-            courses.push({
-                lsf_id: parseInt($(this).attr('href').match(/publishid=(\d+)/)[1])
-            });
-        });
-        return courses;
-    }).catch(function (err) {
-        console.error('failed to parse url ' + url);
-        throw err;
+    return harvest.harvest(url, function ($) {
+        return Q($('.divcontent table > tbody > tr:nth-child(n+2) > td:nth-child(3) > a').get().map(function(a) {
+            return {
+                lsf_id: parseInt($(a).attr('href').match(/publishid=(\d+)/)[1])
+            };
+        }));
     });
 }
 
-exports.moduleFetchById = function (lsf_id) {
+harvest.moduleFetchById = function (lsf_id) {
     var url = 'https://lsf.uni-stuttgart.de/qisserver/rds?state=verpublish&status=init&moduleCall=mhbHTMLDetail&publishConfFile=mhbdetail&publishSubDir=mhb&publishid=' + lsf_id;
 
-    return exports.harvest(url).then(function ($) {
+    return harvest.harvest(url, function ($) {
         var trs = $('.divcontent table table tr').get();
         var infoTable = {};
         trs.map(function (tr, i, arr) {
@@ -102,16 +105,15 @@ exports.moduleFetchById = function (lsf_id) {
         });
 
         // walk through lectures (we need to harvest those links to get the correct lsf_id's ...)
-        var lectures = [];
         var lecturePromises = $('li a', infoTable['15']).get().map(function (el) {
-            return exports.lectureFetchIdsBySearchUrl($(el).attr('href'))
+            return harvest.lectureFetchIdsBySearchUrl($(el).attr('href'))
             .then(function (lectures) {
-                lectures_tmp = lectures.map(function (lec) { return lec.lsf_id; });
-                lectures = lectures.concat(lectures_tmp);
+                return lectures.map(function (lec) { return lec.lsf_id; });
             });
         });
 
-        return Q.all(lecturePromises).then(function () {
+        return Q.all(lecturePromises).then(function (lectures_chunks) {
+            lectures = [].concat.apply([], lectures_chunks);
             var module = {
                 lsf_id: lsf_id,
                 name: infoTable['1a'].text().trim(),
@@ -126,12 +128,9 @@ exports.moduleFetchById = function (lsf_id) {
                 lsf_lectures: lectures
             }
 
-            return module;
+            return Q(module);
         });
 
-    }).catch(function (err) {
-        console.error('failed to parse url ' + url);
-        throw err;
     });
 
 };
@@ -140,37 +139,53 @@ exports.moduleFetchById = function (lsf_id) {
 * Lecture harvesting
 */
 
-exports.lectureFetchIdsBySearchUrl = function (url) {
-    return exports.harvest(url).then(function ($) {
-        var lectures = [];
-        $('.divcontent table tr:nth-child(n+2)').each(function () {
-            lectures.push({
-                lsf_id: parseInt($('td:nth-child(2) a:nth-child(1)', this).attr('href').match(/publishid=(\d+)/)[1]),
-            });
-        });
-        return lectures;
-    }).catch(function (err) {
-        console.error('failed to parse url ' + url);
-        throw err;
+harvest.lectureFetchCount = function () {
+    var url = 'https://lsf.uni-stuttgart.de/qisserver/rds?state=wsearchv&search=1&subdir=veranstaltung&veranstaltung.semester=' + harvest.semester + '&P_start=0&P_anzahl=100';
+
+    return harvest.harvest(url, function ($) {
+        return Q($('.divcontent .InfoLeiste').text().match(/(\d+) Treffer/)[1]);
     });
 }
 
-exports.lectureFetchIdsByCourseId = function (course_id) {
-    var url = 'https://lsf.uni-stuttgart.de/qisserver/rds?state=wsearchv&search=1&subdir=veranstaltung&k_abstgv.abstgvnr=' + course_id + '&veranstaltung.semester=' + semester + '&P_start=0&P_anzahl=9999'
+harvest.lectureFetchIdsByRange = function (start, length) {
+    var url = 'https://lsf.uni-stuttgart.de/qisserver/rds?state=wsearchv&search=1&subdir=veranstaltung&veranstaltung.semester=' + harvest.semester + '&P_start=' + start + '&P_anzahl=' + length;
 
-    return exports.lectureFetchIdsBySearchUrl(url).then(function (lectures) {
-        // Add information about the course these lectures belong to
+    return harvest.lectureFetchIdsBySearchUrl(url).then(function (lectures) {
         return lectures.map(function (lecture) {
-            lecture.lsf_courses = [course_id];
-            return lecture
+            lecture.semester = harvest.semester;
+            return lecture;
         });
     });
 }
 
-exports.lectureFetchById = function (lsf_id) {
+harvest.lectureFetchIdsBySearchUrl = function (url) {
+    return harvest.harvest(url, function ($) {
+        return Q($('.divcontent table tr:nth-child(n+2)').get().map(function (tr) {
+            return {
+                lsf_id: parseInt($('td:nth-child(2) a:nth-child(1)', tr).attr('href').match(/publishid=(\d+)/)[1]),
+            };
+        }));
+    });
+}
+
+/*
+harvest.lectureFetchIdsByCourseId = function (course_id) {
+    var url = 'https://lsf.uni-stuttgart.de/qisserver/rds?state=wsearchv&search=1&subdir=veranstaltung&k_abstgv.abstgvnr=' + course_id + '&veranstaltung.semester=' + harvest.semester + '&P_start=0&P_anzahl=9999'
+
+    return harvest.lectureFetchIdsBySearchUrl(url).then(function (lectures) {
+        return lectures.map(function (lecture) {
+            // Add information about the course these lectures belong to
+            lecture.lsf_courses = [course_id];
+            lecture.semester = harvest.semester;
+            return lecture;
+        });
+    });
+}*/
+
+harvest.lectureFetchById = function (lsf_id) {
     var url = 'https://lsf.uni-stuttgart.de/qisserver/rds?state=verpublish&publishid=' + lsf_id + '&moduleCall=webInfo&publishConfFile=webInfo&publishSubDir=veranstaltung';
 
-    return exports.harvest(url).then(function ($) {
+    return harvest.harvest(url, function ($) {
 
         var tds = $('.divcontent form table[summary*="Grunddaten"] td').contents();
 
@@ -180,9 +195,9 @@ exports.lectureFetchById = function (lsf_id) {
         var type_practicum  = 1 << 3;
         var type_remedial   = 1 << 4;
         var type_task       = 1 << 5;
+        var type_other      = 1 << 6;
 
         var type_map = {
-            'Blockveranstaltung': 0,
             // lecture
             'Vorlesung': type_lecture,
             'Vortragsreihe': type_lecture,
@@ -209,14 +224,16 @@ exports.lectureFetchById = function (lsf_id) {
             // remedial
             'Propädeutikum': type_remedial,
             'Repetitorium': type_remedial,
-            'Zusatzveranstaltung': type_remedial,
-            'Sonderbelegung': type_remedial,
             'Mentorat': type_remedial,
             // task
             'Entwürfe': type_task,
             'Bachelorarbeit': type_task,
             'Masterarbeit': type_task,
             // other
+            'Blockveranstaltung': type_other,
+            'Zusatzveranstaltung': type_other,
+            'Sonderbelegung': type_other,
+            // combinations
             'Vorlesung + Übung': type_lecture | type_tutorial,
             'Vortragsübung': type_lecture | type_tutorial | type_remedial,
             'Anleitung zum wiss. Arbeiten': type_lecture | type_tutorial | type_remedial,
@@ -241,14 +258,12 @@ exports.lectureFetchById = function (lsf_id) {
         var events = [].concat.apply([], $('.divcontent form table[summary*="Veranstaltungstermine"] tr:nth-of-type(n+2)').get().map(function (el) {
 
             var times = $('td:nth-child(3)', el).text().match(/\d{2}:\d{2}/g);
-            if (!times) // no time specified, useless event for us
-                return [];
+            if (!times) return []; // no time specified, useless event for us
             var timeStart = moment.duration(times[0]),
                 timeEnd = moment.duration(times[1]);
 
             var dates = $('td:nth-child(5)', el).text().match(/\d{2}.\d{2}.\d{4}/g);
-            if (!dates) // no date specified, useless event for us
-                return [];
+            if (!dates) return []; // no date specified, useless event for us
             var date = moment(dates[0], 'DD.MM.YYYY'),
                 dateEnd = moment(dates[1], 'DD.MM.YYYY');
 
@@ -281,10 +296,41 @@ exports.lectureFetchById = function (lsf_id) {
             events: events
         }
 
-        return module;
+        return Q(module);
 
-    }).catch(function (err) {
-        console.error('failed to parse url ' + url);
-        throw err;
+    });
+}
+
+/*
+ * Location harvesting
+ */
+
+harvest.locationFetchById = function (lsf_id) {
+    var room_url = 'https://lsf.uni-stuttgart.de/qisserver/rds?state=verpublish&moduleCall=webInfo&publishConfFile=webInfoRaum&publishSubDir=raum&raum.rgid=' + lsf_id;
+
+    return harvest.harvest(room_url, function ($) {
+        var building_url = $('.divcontent table[summary*="Grunddaten"] td:nth-of-type(2) a').attr('href');
+
+        var room_data = $('.divcontent table[summary*="Grunddaten"] td').get()
+                .map(function (td) { return $(td).text().trim(); });
+
+        return harvest.harvest(building_url, function ($) {
+            return Q($('.divcontent table[summary*="Grunddaten"] td').get()
+                    .map(function (td) { return $(td).text().trim(); }));
+        }).then(function (building_data) {
+            return {
+                lsf_id: lsf_id,
+                type: 0,
+                name: "",
+                campus: building_data[1],
+                address: building_data[2],
+                address_short: building_data[0],
+                address_misc: building_data[4],
+                room: room_data[0],
+                room_short: room_data[2],
+                room_misc: room_data[4],
+            };
+        });
+
     });
 }

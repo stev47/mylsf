@@ -62,7 +62,7 @@ Properties:
  - `credits`, `int` (9)
  - `creditHours`, `int` (6)
  - `duration`, `int` (1, Semester)
- - `rotationCycle`, `int[2]` ([2, 1], [Intervall (0 unregelmäßig), Start (1: Winter, 2: Sommer)] )
+ - `rotationCycle`, `int[2]` ([2, 1], [Intervall (0 unregelmäßig), Start (1: Sommer, 2: Winter)] )
  - `lsf_courses`, `int[]`
  - `lsf_lectures`, `int[]`
  - <del>`lectures`, `ObjectId[]`</del>
@@ -72,6 +72,10 @@ Properties:
 ## lecture
 
 >> 1279: `course.lsf_id`, 20141: semester
+
+Fetch id's per pages
+    https://lsf.uni-stuttgart.de/qisserver/rds?state=wsearchv&search=1&subdir=veranstaltung&veranstaltung.semester=20141&P_start=0&P_anzahl=100
+
 
 Fetch id's per course id:
     https://lsf.uni-stuttgart.de/qisserver/rds?state=wsearchv&search=1&subdir=veranstaltung&k_abstgv.abstgvnr=1279&veranstaltung.semester=20141&P_start=0&P_anzahl=9999
@@ -84,8 +88,9 @@ Fetch data:
  - `lsf_id`, `int` (149122)
  - `name`, `string` (Algebra)
  - `lecNum`, `string` (01370)
- - `type`, `string` (1) [combined bitfield: 1: lecture, 2: tutorial, 4: seminar, 8: practicum]
+ - `type`, `int` (1) [combined bitfield: 1: lecture, 2: tutorial, 4: seminar, 8: practicum]
  - `creditHours`, `int` (6)
+ - `semester`, `string` (20141 for SS14, 20142 for WS14/15)
  - `lsf_courses`, `int[]` (Mathematik Bsc, Mathematik Lehramt?)
  - `lsf_modules`, `int[]` (Algebra, Algebra und Zahlentheorie)
  - `lsf_tutorials`, `int[]` (Gruppenübung 1, …)
@@ -94,9 +99,16 @@ Fetch data:
 
  - `timeBegin`, `Date`
  - `timeEnd`, `Date`
- - `lsf_location`, `int`
+ - `lsf_location`, `int` (`null` allowed, if not available)
  - `lsf_lecture`, `int`
 
+## location
+
+ - `lsf_id`, `int` (= room id)
+ - `type`, `int` ()
+ - `name`, `string` (address and room combined, using shorthands)
+ - `address`, `string` (long description)
+ - `room`, `string` (long description)
 
 
 

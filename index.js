@@ -27,6 +27,26 @@ MongoClient.connect("mongodb://localhost:27017/mylsf", function (err, db) {
 
 
     });
+    app.get('/majors', function (req, res) {
+        Q.ninvoke(db.collection('majors').find().sort({'name' : 1}), 'toArray')
+        .then(function (majors) {
+            res.send(majors);
+        });
+    });
+
+    app.get('/major/:major/lectures', function (req, res) {
+        Q.ninvoke(db.collection('courses').find({majorNum: req.params.major}), 'toArray')
+        .then(function (courses) {
+            return courses.map(function (course) { return course.lsf_id });
+        })
+        .then(function (courseIds) {
+            return Q.ninvoke(db.collection('lectures').find({lsf_courses: { $elemMatch: {$in: courseIds}}}).sort({'name' : 1}), 'toArray');
+
+        })
+        .then(function (lectures) {
+            res.send(lectures);
+        });
+    });
 
     app.get('/test2', function (req, res) {
 
