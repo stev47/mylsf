@@ -250,7 +250,7 @@ MongoClient.connect("mongodb://localhost:27017/mylsf", function (err, db) {
             var col = db.collection('courses');
 
             log.info('import', 'Fetching course data …');
-            Q.ninvoke(col.find({lsf_id: 1278}).sort({lsf_id: 1}), 'toArray').then(function (res) {
+            Q.ninvoke(col.find().sort({lsf_id: 1}), 'toArray').then(function (res) {
                 var jobs = res.map(function (course) {
                     return updateCourse.bind(null, course);
                 });
