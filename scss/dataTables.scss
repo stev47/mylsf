@@ -1,0 +1,16 @@
+@import 'grid';
+@import 'form';
+
+
+.dataTables_wrapper {
+	@include row();
+}
+.dataTables_paginate .dataTables_info {
+	@include column(1,2);
+}
+.dataTables_paginate {
+	@include column(1,2);
+	a.paginate_button {
+		@extend button;
+	}
+}
