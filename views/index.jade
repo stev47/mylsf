@@ -2,7 +2,9 @@ extends layout
 
 block body
 	script(src="/js/main.js")
-	input(type='text' id='search' placeholder='Studienfach')
+	div#search-form
+		label(for='search') Studienfach
+		input(type='text' id='search' autofocus)
 	div#result
 		table(id='lectures')
 			thead

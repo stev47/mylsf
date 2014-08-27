@@ -1,5 +1,6 @@
 $(function () {
     $('#lectures').DataTable({
+        dom: 't',
         autoWidth: false,
         columns: [
             { data: 'name' },
@@ -9,6 +10,7 @@ $(function () {
             url: '/major/079/lectures',
             dataSrc: '',
         },
+        pageLength: -1,
     });
 
 
