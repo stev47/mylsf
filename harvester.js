@@ -72,6 +72,7 @@ harvest.courseFetchById = function (lsf_id) {
             majorNum: majorNum,
             majorName: majorName,
             erVer: erVer,
+            timeHarvest: moment().toDate(),
         }
 
         return Q(course);
@@ -125,7 +126,8 @@ harvest.moduleFetchById = function (lsf_id) {
                 duration: parseInt(infoTable['5'].text().trim()),
                 //rotationCycle:
                 //lectures: $('li a', infoTable['15']).attr('href'), // TODO
-                lsf_lectures: lectures
+                lsf_lectures: lectures,
+                timeHarvest: moment().toDate(),
             }
 
             return Q(module);
@@ -293,7 +295,8 @@ harvest.lectureFetchById = function (lsf_id) {
             lsf_courses: lsf_courses,
             lsf_modules: lsf_modules,
             lsf_tutorials: lsf_tutorials,
-            events: events
+            events: events,
+            timeHarvest: moment().toDate(),
         }
 
         return Q(module);
@@ -329,6 +332,7 @@ harvest.locationFetchById = function (lsf_id) {
                 room: room_data[0],
                 room_short: room_data[2],
                 room_misc: room_data[4],
+                timeHarvest: moment().toDate(),
             };
         });
 

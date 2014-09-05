@@ -89,7 +89,7 @@ MongoClient.connect("mongodb://localhost:27017/mylsf", function (err, db) {
         return Q.ninvoke(db.collection('courses'), 'update', {lsf_id: course.lsf_id}, {
             $addToSet: {
                 lsf_modules: { $each: lsf_modules },
-                lsf_lectures: { $each: lsf_lectures }
+                lsf_lectures: { $each: lsf_lectures },
             },
             $set: course
         }, {upsert: true});
@@ -104,9 +104,9 @@ MongoClient.connect("mongodb://localhost:27017/mylsf", function (err, db) {
         return Q.ninvoke(db.collection('modules'), 'update', {lsf_id: module.lsf_id}, {
             $addToSet: {
                 lsf_courses: { $each: lsf_courses },
-                lsf_lectures: { $each: lsf_lectures }
+                lsf_lectures: { $each: lsf_lectures },
             },
-            $set: module
+            $set: module,
         }, {upsert: true});
     }
     function upsertLecture (lecture) {
@@ -119,7 +119,7 @@ MongoClient.connect("mongodb://localhost:27017/mylsf", function (err, db) {
         return Q.ninvoke(db.collection('lectures'), 'update', {lsf_id: lecture.lsf_id}, {
             $addToSet: {
                 lsf_courses: { $each: lsf_courses },
-                lsf_modules: { $each: lsf_modules }
+                lsf_modules: { $each: lsf_modules },
             },
             $set: lecture
         }, {upsert: true});
@@ -147,11 +147,13 @@ MongoClient.connect("mongodb://localhost:27017/mylsf", function (err, db) {
                     upsertCourse(courseData),
                     upsertDegree({
                         lsf_num: courseData.degreeNum,
-                        name: courseData.degreeName
+                        name: courseData.degreeName,
+                        timeHarvest: courseData.timeHarvest,
                     }),
                     upsertMajor({
                         lsf_num: courseData.majorNum,
-                        name: courseData.majorName
+                        name: courseData.majorName,
+                        timeHarvest: courseData.timeHarvest,
                     })
                 ]).thenResolve(courseData);
             }
@@ -178,7 +180,7 @@ MongoClient.connect("mongodb://localhost:27017/mylsf", function (err, db) {
                 moduleData.lsf_lectures.map(function (lecture_id) {
                     return upsertLecture({
                         lsf_id: lecture_id,
-                        lsf_modules: [module.lsf_id]
+                        lsf_modules: [module.lsf_id],
                     });
                 }),
                 upsertModule(moduleData)
@@ -202,20 +204,20 @@ MongoClient.connect("mongodb://localhost:27017/mylsf", function (err, db) {
                 lectureData.lsf_courses.map(function (course_id) {
                     return upsertCourse({
                         lsf_id: course_id,
-                        lsf_lectures: [lecture.lsf_id]
+                        lsf_lectures: [lecture.lsf_id],
                     });
                 }),
                 lectureData.lsf_modules.map(function (module_id) {
                     return upsertModule({
                         lsf_id: module_id,
-                        lsf_lectures: [lecture.lsf_id]
+                        lsf_lectures: [lecture.lsf_id],
                     });
                 }),
                 upsertLecture(lectureData),
                 events.map(upsertEvent) // insert events for this lecture
             )).thenResolve({
                 lecture: lectureData,
-                events: events
+                events: events,
             });
 
         })
