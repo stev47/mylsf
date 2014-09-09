@@ -1,0 +1,1 @@
+ - Studiengang, Kennzeichenfach (Hauptfach, Beifach) erfassen
