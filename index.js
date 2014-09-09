@@ -34,6 +34,13 @@ MongoClient.connect("mongodb://localhost:27017/mylsf", function (err, db) {
         });
     });
 
+    app.get('/major/:major/courses', function (req, res) {
+        Q.ninvoke(db.collection('courses').find({majorNum: req.params.major}), 'toArray')
+        .then(function (courses) {
+            res.send(courses);
+        });
+    });
+
     app.get('/major/:major/lectures', function (req, res) {
         Q.ninvoke(db.collection('courses').find({majorNum: req.params.major}), 'toArray')
         .then(function (courses) {
@@ -45,6 +52,13 @@ MongoClient.connect("mongodb://localhost:27017/mylsf", function (err, db) {
         })
         .then(function (lectures) {
             res.send(lectures);
+        });
+    });
+
+    app.get('/lectures', function (req, res) {
+        Q.ninvoke(db.collection('lectures').find(), 'toArray')
+        .then(function (majors) {
+            res.send(majors);
         });
     });
 

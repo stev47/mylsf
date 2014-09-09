@@ -2,16 +2,9 @@ extends layout
 
 block body
 	script(src="/js/main.js")
-	div#search-form
-		label(for='search') Studienfach
-		input(type='text' id='search' autofocus)
-	div#result
+	div(id='container')
+		table(id='majors')
 		table(id='lectures')
-			thead
-				tr
-					th Name
-					th Typ
-			tbody
 
 
 

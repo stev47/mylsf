@@ -2,17 +2,25 @@
 @import 'table';
 @import 'dataTables';
 
-.autocomplete-suggestions { border: 1px solid #999; background: #FFF; cursor: default; overflow: auto; box-shadow: 1px 4px 3px rgba(50, 50, 50, 0.64); }
-.autocomplete-suggestion { padding: 2px 5px; white-space: nowrap; overflow: hidden; }
-.autocomplete-no-suggestion { padding: 2px 5px;}
-.autocomplete-selected { background: #F0F0F0; }
-.autocomplete-suggestions strong { font-weight: normal; color: #3399FF; }
+body {
+	font-size: 10pt;
+}
 
+div#container {
+	div {
+		width: 50%;
+		float: left;
+	}
+}
 
-div#result {
-	width: 50%;
-	margin: auto;
-	table {
-		width: 100%;
+#majors td, #lectures td {
+	padding: .2em .3em;
+}
+table tr {
+	&.selected {
+		background-color: #CCC;
+	}
+	&:hover {
+		background-color: #EEE;
 	}
 }
