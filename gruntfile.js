@@ -10,32 +10,32 @@ module.exports = function(grunt) {
           cwd: 'scss',
           src: ['*.scss'],
           dest: 'public/css',
-          ext: '.css'
+          ext: '.css',
+          update: true
         }]
       },
     },
     watch: {
       source: {
         files: ['scss/*.scss'],
-        tasks: ['sass'],
+        tasks: ['sass:dist'],
         options: {
-          livereload: true,
-          spawn: false
+          livereload: true
+          //spawn: false
         }
       }
     }
   });
+/*
+  grunt.event.on('watch', function(action, src, target) {
+    var dest = 'public/css/' + path.basename(src, '.scss') + '.css';
+    var sass_config = {}
 
-  grunt.event.on('watch', function(action, filepath, target) {
-    var dest = 'public/css/' + path.basename(filepath, '.scss') + '.css';
-    grunt.config('sass.dist.files', (obj = {},
-      obj['public/css/' + path.basename(filepath, '.scss') + '.css'] = 'scss/' + path.basename(filepath),
-      obj
-    ));
-    grunt.log.writeln(grunt.config('sass.dist.files'));
-    //grunt.log.writeln(target + ': ' + path.basename(filepath) + ' has ' + action);
+    // create appropriate sass rule on the fly (task 'sass' gets to run after this)
+    sass_config[dest] = src;
+    grunt.config('sass.once.files', sass_config);
   });
-
+*/
   grunt.registerTask('default', ['sass']);
   grunt.loadNpmTasks('grunt-contrib-sass');
   grunt.loadNpmTasks('grunt-contrib-watch');
