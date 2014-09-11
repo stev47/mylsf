@@ -47,6 +47,7 @@ You'll need
 
 Proceed by doing something like
 
+0. `cd` to this projects directory
 1. `npm install` to install dependencies
 2. `grunt sass` to compile stylesheets
 3. Make sure mongodb server is started and listening on default port 27017
