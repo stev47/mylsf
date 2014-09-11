@@ -1,5 +1,4 @@
 var express = require('express'),
-    request = require('request'),
     cheerio = require('cheerio'),
     fs = require('fs'),
     Q = require('q');
