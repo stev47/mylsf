@@ -7,14 +7,9 @@ This this project aims to be a better alternative to
 [HIS/LSF](https://lsf.uni-stuttgart.de) at the University of Stuttgart for
 viewing lecture data and planning your timetable.
 
-Eventually one would like to have more functionality on currently running
-lectures (e.g. “I'm currently in building A and have free time, which lectures
-are available for me to peek into?”).
-
-The possibilities are endless and it is sad to see, that HIS/LSF doesn't even
-bother fixing known bugs in their system, yet alone delivering improved user
-experience.
-We want to create our own open alternative.
+Eventually one would like to have more functionality (e.g. “I'm currently in
+building A and have free time, which lectures are available for me to peek
+into?”), the possibilities are endless.
 
 
 ## Overview
