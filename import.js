@@ -133,6 +133,10 @@ MongoClient.connect("mongodb://localhost:27017/mylsf", function (err, db) {
         }, {upsert: true});
     }
 
+    function insertEvents (events) {
+        return Q.ninvoke(db.collection('events'), 'insert', events);
+    }
+
 
 
 
@@ -214,7 +218,7 @@ MongoClient.connect("mongodb://localhost:27017/mylsf", function (err, db) {
                     });
                 }),
                 upsertLecture(lectureData),
-                events.map(upsertEvent) // insert events for this lecture
+                insertEvents(events) // insert events for this lecture
             )).thenResolve({
                 lecture: lectureData,
                 events: events,
