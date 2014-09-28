@@ -364,7 +364,7 @@ MongoClient.connect("mongodb://localhost:27017/mylsf", function (err, db) {
                 });
                 return runJobs(jobs, bar);
             }).done(function (res) {
-                log.info('import', '%d room ids imported!', res.length);
+                log.info('import', '%d rooms imported!', res.length);
                 process.exit();
             });
 
