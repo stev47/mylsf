@@ -414,6 +414,7 @@ MongoClient.connect("mongodb://localhost:27017/mylsf", function (err, db) {
             .then(Q.nbind(db.collection('degrees').drop, db.collection('degrees')))
             .then(Q.nbind(db.collection('modules').drop, db.collection('modules')))
             .then(Q.nbind(db.collection('lectures').drop, db.collection('lectures')))
+            .then(Q.nbind(db.collection('events').drop, db.collection('events')))
             .then(Q.nbind(db.collection('locations').drop, db.collection('locations')))
             .then(Q, Q)
             .done(function () {
