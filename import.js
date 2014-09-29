@@ -408,22 +408,6 @@ MongoClient.connect("mongodb://localhost:27017/mylsf", function (err, db) {
             });
             break;
 
-        case 'clear':
-            Q.ninvoke(db.collection('courses'), 'drop')
-            .then(Q.nbind(db.collection('majors').drop, db.collection('majors')))
-            .then(Q.nbind(db.collection('degrees').drop, db.collection('degrees')))
-            .then(Q.nbind(db.collection('modules').drop, db.collection('modules')))
-            .then(Q.nbind(db.collection('lectures').drop, db.collection('lectures')))
-            .then(Q.nbind(db.collection('events').drop, db.collection('events')))
-            .then(Q.nbind(db.collection('locations').drop, db.collection('locations')))
-            .then(Q, Q)
-            .done(function () {
-                log.info('import', 'cleared database');
-                process.exit();
-            });
-            break;
-
-
         case 'test':
             harvester.locationFetchById(2308).done(function (res) {
                 console.log(res);
