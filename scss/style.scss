@@ -2,16 +2,43 @@
 @import 'table';
 @import 'dataTables';
 
+* {
+	box-sizing: border-box;
+}
 body {
 	font-size: 10pt;
 }
 
+
 div#container {
-	div {
-		width: 50%;
-		float: left;
+	width: 50%;
+	min-width: 500px;
+	margin: auto;
+}
+
+div#majors_wrapper {
+	display: block;
+	width: 100%;
+	&.inactive {
+	}
+	float: left;
+	div#majors_filter {
+		width: 100%;
+		margin-bottom: .2em;
+		input {
+			width: 100%;
+			box-sizing: border-box;
+		}
+	}
+	table {
+		width: 100%;
 	}
 }
+div#lectures_wrapper {
+	width: 70%;
+	float: left;
+}
+
 
 #majors td, #lectures td {
 	padding: .2em .3em;
