@@ -61,8 +61,8 @@ harvest.courseFetchById = function (lsf_id) {
         var majorName = tds[1].match(/^\d*\s*(.*)$/)[1];
         var erVer = tds[7].match(/^(\d+)/) ? tds[7].match(/^(\d+)/)[1] : null;
 
-        if (!degreeNum || !majorNum)
-            throw {type: 1, message: 'missing degreeNum and/or majorNum'};
+        //if (!degreeNum || !majorNum)
+        //    throw {type: 1, message: 'missing degreeNum and/or majorNum'};
 
         var course = {
             lsf_id: lsf_id,
