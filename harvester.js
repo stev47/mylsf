@@ -286,12 +286,15 @@ harvest.lectureFetchById = function (lsf_id) {
             return events;
         }));
 
+        var semester = tds[3].data.match(/(\d{4})/)[1] + (tds[3].data.match(/SoSe/) ? '1' : '2');
+
         var module = {
             lsf_id: lsf_id,
             name: $('.divcontent form h1').text().replace(/ - Einzelansicht\s*$/, ''),
             lecNum: tds[1].data,
             type: type_map[tds[0].data],
             creditHours: parseInt(tds[2].data),
+            semester: semester,
             lsf_courses: lsf_courses,
             lsf_modules: lsf_modules,
             lsf_tutorials: lsf_tutorials,
