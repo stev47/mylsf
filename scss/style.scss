@@ -11,40 +11,48 @@ body {
 
 
 div#container {
-	width: 50%;
+	width: 500rem;
 	min-width: 500px;
 	margin: auto;
+	position: relative;
 }
 
 div#majors_wrapper {
 	display: block;
-	width: 100%;
+	width: 20rem;
 	&.inactive {
 	}
 	float: left;
-	div#majors_filter {
-		width: 100%;
-		margin-bottom: .2em;
-		input {
-			width: 100%;
-			box-sizing: border-box;
-		}
-	}
 	table {
 		width: 100%;
 	}
 }
 div#lectures_wrapper {
-	width: 70%;
+	width: 50rem;
 	float: left;
+}
+
+#majors_filter, #lectures_filter {
+	width: 100%;
+	margin-bottom: .5em;
+	input {
+		width: 100%;
+		box-sizing: border-box;
+	}
+}
+
+.dataTables_wrapper {
+	visibility: hidden;
+	margin: 0.5em;
 }
 
 
 #majors td, #lectures td {
 	padding: .2em .3em;
 }
-table tr {
-	&.selected {
+
+table tbody tr {
+	&.selected, &.selected:hover {
 		background-color: #CCC;
 	}
 	&:hover {
