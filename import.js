@@ -12,7 +12,7 @@ Q.longStackSupport = true;
 // args parsing
 if (argv.v) log.level = 'verbose';
 var numJobs = argv.j || 5;
-harvester.semester = argv.s || '20141';
+harvester.semester = argv.s || '20142';
 
 
 /** Parallel job scheduling for promise-returning functions */
