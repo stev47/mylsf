@@ -20,7 +20,7 @@ function dt_init () {
                     $('tr.selected', tbody_el).removeClass('selected')
                         .next().addClass('selected');
                     if (!$('tr.selected', tbody_el).length) {
-                        $('tr', tbody_el).removeClass('selected');
+                        dt.$('tr').removeClass('selected');
                         $('tr:first-of-type', tbody_el).addClass('selected');
                     }
 
@@ -31,7 +31,7 @@ function dt_init () {
                     $('tr.selected', tbody_el).removeClass('selected')
                         .prev().addClass('selected');
                     if (!$('tr.selected', tbody_el).length) {
-                        $('tr', tbody_el).removeClass('selected');
+                        dt.$('tr').removeClass('selected');
                         $('tr:last-of-type', tbody_el).addClass('selected');
                     }
 
