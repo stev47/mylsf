@@ -49,7 +49,7 @@ MongoClient.connect("mongodb://localhost:27017/mylsf", function (err, db) {
             return Q.ninvoke(db.collection('lectures').find({lsf_courses: { $elemMatch: {$in: courseIds}}}).sort({'name' : 1}), 'toArray');
 
         })
-        .then(function (lectures) {
+        .done(function (lectures) {
             res.send(lectures);
         });
     });
