@@ -19,7 +19,7 @@ harvest.harvest = function (url, fn) {
             normalizeWhitespace: true
         });
         log.verbose('harvest', 'Processing data from "%s" …', url);
-        return fn($)
+        return Q.try(fn.bind(null, $))
         .then(function (res) {
             log.verbose('harvest', 'Harvest sucessful: ', res);
             return res;
