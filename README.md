@@ -43,9 +43,10 @@ You'll need
 Proceed by doing something like
 
 0. `cd` to this projects directory
-1. `npm install` to install dependencies
-2. `grunt sass` to compile stylesheets
-3. Make sure mongodb server is started and listening on default port 27017
+1. Make sure mongodb server is started and listening on default port 27017:
+   Either start the service or run `mongod` directly (have a look at http://docs.mongodb.org/manual/tutorial/manage-mongodb-processes/ for details).
+2. `npm install` to install dependencies
+3. `grunt sass` to compile stylesheets
 4. Run `node ./import.js [-v] <command>` using a command from the following list
    (it's probably wise to run these commands in the following order):
     - `courseList` to import course id's
