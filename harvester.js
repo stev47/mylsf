@@ -211,6 +211,7 @@ harvest.lectureFetchById = function (lsf_id) {
             'Kurs': type_tutorial,
             'Lektürekurs': type_tutorial,
             'Workshop': type_tutorial,
+            'Gruppenübung A': type_tutorial,
             // seminar
             'Hauptseminar': type_seminar,
             'Proseminar': type_seminar,
@@ -227,6 +228,7 @@ harvest.lectureFetchById = function (lsf_id) {
             'Propädeutikum': type_remedial,
             'Repetitorium': type_remedial,
             'Mentorat': type_remedial,
+            'Zusätzliche Übungen': type_remedial,
             // task
             'Entwürfe': type_task,
             'Bachelorarbeit': type_task,
@@ -235,6 +237,8 @@ harvest.lectureFetchById = function (lsf_id) {
             'Blockveranstaltung': type_other,
             'Zusatzveranstaltung': type_other,
             'Sonderbelegung': type_other,
+            'Sperrung': type_other,
+            'Führung': type_other,
             // combinations
             'Vorlesung + Übung': type_lecture | type_tutorial,
             'Vortragsübung': type_lecture | type_tutorial | type_remedial,
