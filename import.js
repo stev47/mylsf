@@ -61,7 +61,7 @@ var runJobs = function (fns, bar) {
 
 
 Q.nbind = function (fn, thisp) {
-    var fnArgs = Array.prototype.slice.call(arguments).slice(2);
+    var fnArgs = Array.prototype.slice.apply(arguments);
     return function () {
         var deferred = Q.defer();
         fnArgs.push(deferred.makeNodeResolver());
