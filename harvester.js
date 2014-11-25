@@ -10,6 +10,16 @@ var harvest = exports;
 harvest.logLevel = log.level;
 harvest.semester = '20141';
 
+/**
+ * Error Object when target object doesn't exist (anymore)
+ */
+function TargetMissingError (msg) {
+    var err = Error.call(this, msg);
+    err.name = 'TargetMissingError';
+    return err;
+}
+
+
 /* Harvest shorthand func */
 harvest.harvest = function (url, fn) {
     log.verbose('harvest', 'Requesting "%s" …', url);
@@ -190,6 +200,10 @@ harvest.lectureFetchById = function (lsf_id) {
     return harvest.harvest(url, function ($) {
 
         var tds = $('.divcontent form table[summary*="Grunddaten"] td').contents();
+
+        // Happens when id has been invalidated (e.g. old lecture got deleted)
+        if (!tds.length)
+            throw new TargetMissingError('Found nothing :-(');
 
         var type_lecture    = 1 << 0;
         var type_tutorial   = 1 << 1;
