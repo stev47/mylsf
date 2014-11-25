@@ -38,7 +38,7 @@ You'll need
  - nodejs/npm
  - mongodb
  - `grunt` in your path (e.g. `npm install -g grunt` or through pkgs)
- - `sass` in your path (e.g. `gem install sass` or through pkgs)
+ - `sass` in your path (e.g. install `ruby` and run `gem install sass` or through pkgs)
 
 Proceed by doing something like
 
