@@ -15,23 +15,50 @@ var numJobs = argv.j || 5;
 harvester.semester = argv.s || '20142';
 
 
-/** Parallel job scheduling for promise-returning functions */
-Q.runJobs = function (fns, numJobs) {
-    numJobs = numJobs ? numJobs : 5;
-    var deferred = Q.defer();
-    var ret = [];
+var Q_all = Q.all;
+Q.all = function () {
+    var promises = Array.prototype.slice.apply(arguments) // calls slice without args
 
-    var q = async.queue(function (fn, cb) {
-        return fn().then(function (res) {
-            ret.push(res); // save result, because async forgets everything
-            return res;
-        }).nodeify(cb);
-    }, numJobs)
-    q.drain = deferred.makeNodeResolver();
-    q.push(fns);
+    // allow nesting of promises inside array, so flatten them
+    promises = Array.prototype.concat.apply([], promises);
 
-    return deferred.promise.thenResolve(ret);
+    return Q_all(promises);
 }
+
+Q.sequence = function (tasks, initParam) {
+    var res = Q(initParam);
+    tasks.forEach(function (task) {
+        res = res.then(tasks);
+    });
+            return res;
+}
+
+Q.parallel = function (tasks, numJobs, taskCompleted) {
+    numJobs = (typeof numJobs === undefined) ? 5 : numJobs;
+
+    // convert promise returning functions to node-callback functions
+    var ntask = function (task, cb) {
+        Q.try(task).done(function (res) {
+            cb(null, res);
+            if (taskCompleted) taskCompleted(res);
+        }, function (err) {
+            cb(err);
+        });
+    };
+    var tasks = tasks.map(function (task) {
+        return ntask.bind(null, task);
+    });
+
+    return Q.ninvoke(async, 'parallelLimit', tasks, numJobs);
+}
+
+/** Run jobs with progress bar */
+var runJobs = function (fns, bar) {
+    return Q.parallel(fns, numJobs, bar.tick.bind(bar, 1));
+}
+
+
+
 
 Q.nbind = function (fn, thisp) {
     var fnArgs = Array.prototype.slice.call(arguments).slice(2);
@@ -46,20 +73,6 @@ Q.nbind = function (fn, thisp) {
         return deferred.promise;
     }
 }
-
-/** Run jobs with progress bar */
-var runJobs = function (fns, bar) {
-    fns = fns.map(function (fn) {
-        return function () {
-            return fn().then(function (res) {
-                bar.tick(1);
-                return res;
-            })
-        }
-    });
-    return Q.runJobs(fns, numJobs)
-}
-
 
 
 var MongoClient = require('mongodb').MongoClient;
