@@ -263,8 +263,10 @@ harvest.lectureFetchById = function (lsf_id) {
             'Praxisseminar': type_seminar | type_practicum,
         }
 
-        if (!(tds[0].data in type_map))
-            throw new Error('Unknown lecture type "' + tds[0].data + '" in ' + url);
+        if (!(tds[0].data in type_map)) {
+            log.warn('harvest', 'Unknown lecture type "' + tds[0].data + '" in ' + url);
+            type_map[tds[0].data] = type_other;
+        }
 
         var lsf_courses = $('.divcontent form table[summary*="Studiengänge"] td a').get().map(function (el) {
             return parseInt($(el).attr('href').match(/k_abstgv.abstgvnr=(\d+)/)[1]);
