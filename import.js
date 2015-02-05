@@ -147,7 +147,8 @@ MongoClient.connect("mongodb://localhost:27017/mylsf", function (err, db) {
     }
 
     function insertEvents (events) {
-        return Q.ninvoke(db.collection('events'), 'insert', events);
+        if (events.length)
+            return Q.ninvoke(db.collection('events'), 'insert', events);
     }
 
 
